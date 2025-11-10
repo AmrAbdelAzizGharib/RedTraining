@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Academy Strategic Briefing</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        red: {
+                            400: '#ff4d4d',
+                            500: '#cb1419',
+                            600: '#a61115',
+                            900: '#450a0c',
+                        },
+                        charcoal: {
+                            800: '#2d2d2d',
+                            900: '#1a1a1a',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ping-slow': 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+    
+    <!-- LIBRARIES: LOAD ORDER IS CRITICAL -->
+    <!-- 1. React Core -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <!-- 2. React DOM -->
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- 3. Prop-types (Required dependency for Recharts UMD) -->
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <!-- 4. Recharts (Must load AFTER React and Prop-types) -->
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    <!-- 5. Babel (For compiling JSX in browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            background-color: #1a1a1a;
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- BROWSER SETUP (DO NOT CHANGE) ---
+        const { useState, useEffect } = React;
+        const {
+            BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+            ComposedChart, Line, Area, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+        } = window.Recharts || {};
+
+        // Custom SVG Icons
+        const Target = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+        const Zap = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+        const PieChartIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>;
+        const Lock = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+        const Sparkles = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>;
+        const TrendingUp = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
+        const Microscope = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg>;
+        const Brain = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>;
+        const LineChartIcon = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>;
+        const Award = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>;
+        const ArrowUpRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>;
+        const Eye = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>;
+        const AlertTriangle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>;
+        const CheckCircle = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+        const MessageSquare = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+
+        const Logo = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3508 1240" className={className}>
+                <defs><style>{`.cls-1{fill:#cb1419;}`}</style></defs>
+                <g><g id="Layer_1"><g><path fill="currentColor" d="M510.5,201.9l-216.9,100.6-105.8,183c-132.4,229.1-129.2,223.5-128.6,224.1s53.3-26.4,134.5-68.1l14.2-7.3-.6,9.1c-.6,10,.9,28.6,3.2,40,5.4,26,19,51.9,37.1,70.7l6.3,6.6-2.9,8.5c-6,17.2-4.9,30.4,3.1,37.2,5.6,4.8,11.6,6.1,25.2,5.4l10.9-.5,2.8,6.2c7.2,15.9,11.9,35.1,12.7,51.6.8,17.5-2.4,31.4-10.2,44.5-2,3.2-3.3,6-3.1,6.3.8.7,9.2-1.6,19.6-5.5,33.7-12.6,55.4-30.6,63.2-52.5,3.2-9.1,3.2-25.3,0-35.8-6.7-21.3-19.7-37.5-37.2-46.3-3.6-1.7-6.6-3.2-6.7-3.2s1-4.3,2.3-9.5c4.6-17.7,2.9-30.5-4.8-36.3-6.5-5-11.1-6.1-25.3-5.8-7.1.1-14.3.2-16,.4-2.6.2-3.5-.6-8.7-7.8-36.7-51.1-33.3-125,9.3-202.9,18.4-33.6,50.9-77.3,81.2-109.1,1-1.1-1.5,3.2-5.6,9.5-41.5,64.3-73.5,128.3-80.2,160.4-1.7,8.4-2,17.9-.5,17.4.5-.2,43.7-24.4,96.1-53.8l95.1-53.5,127.9-191.7c70.4-105.5,127.9-192,127.9-192.3s-.6-.5-1.2-.4c-.7.1-98.9,45.4-218.3,100.8Z"/><path fill="currentColor" d="M552.3,429.8l-61.8,81.8-92.2,55.8c-50.8,30.7-92.3,56.3-92.3,56.8s7.3,11.7,16.2,25l16.1,24,5.1-.6c7.4-1,27.2-6.1,41.6-10.8,88-28.6,172.4-98.4,239.6-198.3,15.8-23.4,37.3-60.4,39-66.9.4-1.9-3-5.7-23.5-25.4-13.2-12.8-24.4-23.2-24.9-23.2s-28.8,36.8-62.9,81.8Z"/><path className="cls-1" d="M699.4,414.7l-7,.4-4.4,7.7c-17,30.1-46.2,72.3-72.4,104.7-25.4,31.3-62.3,69.4-88.5,91-66.7,55.2-130.9,82-197.6,82.6h-9l3.5,1.6c19.9,9.1,22.6,10.7,29.1,17.2s7.1,8.1,8.7,12.4c3.2,8.3,3,18.4-.5,28.9l-2.7,8.1,4,3c7,5.4,21.8,21.1,26.2,27.7,9.8,15,14.2,28.3,14.2,43.5,0,23.8-10.4,44.1-35.2,68.8l-13.8,13.7v155h718.2l-.6-324.8c-.3-178.6-.9-328.6-1.2-333.5l-.6-8.7-181.7.2c-99.9.1-184.8.4-188.7.5ZM993.3,752.4c7.1,3.4,13.9,11,16.7,18.4,3,7.9,2.4,18.5-1.4,26-13,25.4-48.3,24.7-60.3-1.3-6.7-14.6-1.1-33.3,12.4-41.2,7.6-4.4,11.2-5.4,19.4-5,5.8.3,9,1,13.2,3.1ZM929,870.7c0,72.5.4,116.1,1,118.4,1.2,4.2,4.2,7.7,7.3,8.3,1.2.3,5.3.8,9,1.1l6.8.7-.3,4.6-.3,4.7-6.5.3c-3.6.2-24.2.1-45.7-.3l-39.3-.7v-5.9c0-3.3-.2-5.9-.4-5.9s-3.3,1.7-6.7,3.8c-14.7,8.9-28.9,12.7-44.9,11.9-12.2-.6-20.3-3-30-8.7-6.7-3.9-16.3-12.4-19.4-17.2q-1.7-2.7,2.2-8.5c3.9-5.8,8.6-14.5,11.5-21.5l1.6-3.7-10.6-5.1c-5.8-2.7-10.9-5-11.2-5s-1.5,2.4-2.4,5.2c-.9,2.9-2.8,7.5-4.1,10.3l-2.4,5-1.5-3.6c-2.5-5.7-5.7-18.8-6.4-26.2l-.6-6.7h35.3v-8.9c0-16.6-4.7-35-12-46.4-1.6-2.6-3-5.2-3-5.7s3-4.1,6.6-8c8-8.4,18.1-14.9,28.9-18.6,18.7-6.2,48.4-3.2,63.8,6.6,2.6,1.6,5,3,5.3,3s.4-16.3.2-36.3c-.2-29.3-.6-36.6-1.7-38.3-2.3-3.4-8-5.6-15.8-6.2l-7.3-.5v-4.7c0-2.6.3-5,.7-5.3.3-.4,21.3-.7,46.5-.7h45.8v114.7ZM703.5,838.4c11.9,3.6,27.1,11.7,34.6,18.4,14.6,13.3,23.4,31.8,25.3,53.4l.7,7.8h-101.1v15.9c0,17.1.7,22.5,4,31.4,6.6,17.6,19.6,26.1,39.5,26.1,20.4-.1,36.5-10.6,46.2-30l4.5-9.2,3.7,1.5c2,.8,3.7,1.6,3.9,1.8.5.5-5.8,12.6-9.1,17.5-19.5,28.7-50.8,42.3-87.6,38.1-39.3-4.6-67.1-25.2-76.9-57.3-2.3-7.3-4.7-25.8-3.8-29.3.4-1.7,2-2.6,6.9-3.9,26.9-7.3,41.2-35,31.2-60.1-2-4.8-2.4-6.9-1.6-7.9,1.6-1.9,19.8-11.1,26.1-13.2,11.4-3.7,16.3-4.3,30.5-4,11.6.3,15.5.8,23,3ZM596.3,840.7c8.4,4,16.5,11.5,20.8,19.6,3.2,5.9,3.4,6.7,3.4,16.2s-.3,10.7-2.7,15.7c-5.2,11.2-15.7,19.2-28.3,21.8-16,3.3-31.7-4.4-38.3-18.9-2.1-4.6-2.6-7.1-2.5-13.6,0-4.9.6-9.8,1.6-12.5l1.7-4.5-6.1,6.4c-3.4,3.5-7.3,8.9-8.8,12l-2.6,5.6-.3,43.5c-.2,23.9,0,45.8.3,48.7,1.2,9.8,6.9,14.7,18.3,15.9l6.2.7v9.7h-118v-4.9c0-5.6.6-6.1,8.1-6.1s11.6-2.6,13.9-6.2c1.3-2,1.5-11,1.8-62.1.2-37.9-.1-61.9-.8-65.5-1.5-8.8-7.7-13.2-18.7-13.2h-4.3v-4.9c0-4.6.1-4.9,3.1-5.5,1.7-.3,21-.6,42.9-.6s41.2.3,42.9.6l3.1.6v12.7c.1,12.2.2,12.5,1.8,10.1,7.8-11.4,17.9-19.5,28.7-23,4.7-1.6,8.2-1.9,16-1.7,8.8.2,10.8.6,16.8,3.4Z"/><path fill="currentColor" d="M969.9,767.3c-10,6.7-11.5,19.6-3.2,27.4,8,7.6,19.8,6.3,26.6-2.9,3.2-4.3,3.4-13.2.5-18.3-4.7-8-16.6-11.1-23.9-6.2Z"/><path className="cls-1" d="M827,851.7c-3.8,2-6.2,4.1-7.7,6.9l-2.3,3.9v60c0,55.2.1,60.3,1.8,63.4,2.3,4.6,7.7,8.7,13.3,10.2,4,1.1,5.3,1,9.1-.4,4.9-1.9,10-6.4,12.6-11.1,1.5-2.8,1.7-8.8,1.7-62.6s0-59.6-2-63c-3.2-5.3-9.5-9.3-15.7-9.8-4.4-.3-6.2.1-10.8,2.5Z"/><path className="cls-1" d="M669.9,848c-4.7,2.5-8.6,7.1-9.9,11.8-.5,2-1,13.5-1,25.4v21.8h39.1l-.3-24.3-.3-24.4-2.8-3.6c-5.9-7.7-17.2-10.7-24.8-6.7Z"/><path fill="currentColor" d="M3107.6,415.1c-34.6,3.6-66.2,18.1-90.4,41.3-31.9,30.7-47.5,68.9-47.6,116.6,0,19.5.9,27.9,5,44.5,14.5,57.9,59.6,100.7,119.1,112.6,13.7,2.7,41,3.7,55,1.9,51.2-6.4,93-35.2,115.6-79.8,11.5-22.7,17-43.4,19.2-72.5l.7-8.7h-166.2v44h109.2l-.6,2.7c-1.5,6.1-9.6,21.2-15.5,28.6-14.1,17.7-37.2,30.9-62.1,35.3-9.9,1.7-30.7,2-40,.5-40.4-6.6-71.1-33.4-82.3-72.1-6.6-22.6-6.2-52.8.8-74.5,5.3-16.2,12.7-28.6,23.9-40.4,8.9-9.2,16.6-14.7,28.7-20.6,43.8-21.1,101.6-9.2,130.5,26.9,5.4,6.8,12.6,19.4,14.8,25.8.5,1.7,2.7,1.8,27.2,1.8h26.6l-.6-3.5c-1.3-7-5.8-19.2-10.5-29-27-55.6-92.2-88.6-160.5-81.4Z"/><path fill="currentColor" d="M1420,573v154h51v-113l29.2.2,29.2.3,32.3,55.5c17.8,30.5,32.7,55.8,33.1,56.2s13.7.7,29.5.6l28.7-.3-35.3-59.9-35.3-59.9,10.6-5.3c24.8-12.7,41.3-33,48.6-59.9,2.6-9.2,3.1-34.2.9-44.7-7.3-36-34.4-64-71-73.3-14.7-3.8-28.6-4.4-93.2-4.5h-58.3v154ZM1554.4,470c10.1,2.5,16.7,6.2,23.6,13,22.8,22.3,16.7,61.5-11.8,75.9-11.7,5.9-15,6.3-56.9,6.8l-38.3.5v-98.2h37.8c34.5,0,38.6.2,45.6,2Z"/><path fill="currentColor" d="M1131,443.5v23.5h91v260h51v-260h91v-47h-233v23.5Z"/><path fill="currentColor" d="M1742,571.7c-33.7,83.5-61.5,152.6-61.8,153.5-.4,1.7,1.4,1.8,26.9,1.8h27.4l13-33.3,13-33.2h136.7l13.1,33.2,13.2,33.3h56.4l-4.9-11.8c-2.7-6.4-31.3-75.5-63.7-153.4l-58.8-141.7h-24.6c0-.1-24.6-.1-24.6-.1l-61.3,151.7ZM1854,551.4c13.8,34.5,24.9,63,24.7,63.2s-22.9.3-50.3.2l-50-.3,15.4-39c31.3-79.7,34.4-87.6,34.7-87.3s11.6,28.6,25.5,63.2Z"/><path fill="currentColor" d="M2033,573.5v153.5h51v-307h-51v153.5Z"/><path fill="currentColor" d="M2171,573.5v153.5h50l.2-108.7.3-108.6,79.4,108.6,79.4,108.7h43.7v-307h-50l-.2,106.8-.3,106.9-77.6-106.6-77.6-106.6-23.6-.3-23.7-.2v153.5Z"/><path fill="currentColor" d="M2511,573.5v153.5h51v-307h-51v153.5Z"/><path fill="currentColor" d="M2649,573.5v153.5h50l.2-108.7.3-108.6,79.4,108.6,79.4,108.7h43.7v-307h-50l-.2,106.8-.3,106.9-77.6-106.6-77.6-106.6-23.6-.3-23.7-.2v153.5Z"/><path fill="currentColor" d="M1579,756.7c-73.9,7.2-126.6,54.4-141.2,126.5-2,10-2.3,14.1-2.3,36.3.1,22.2.3,26.2,2.3,35.4,14.4,65.8,57.2,109.4,121.2,123.3,9.3,2,13.3,2.2,34.5,2.2s25.2-.2,34.2-2.2c46.2-10.1,82.8-38.3,103.3-79.7,3.2-6.6,7.3-15.9,8.9-20.7,2.7-7.9,7.1-27.2,8.5-37.1l.5-3.7h-100.5l-1.3,5.1c-4,15.6-16.9,32.2-30,38.8-20.9,10.6-45.4,6.2-61.6-11-11.9-12.7-17.6-29.2-17.5-51.1,0-18,3.2-30.2,11.1-43.4,6.6-10.9,19.8-20.5,31.9-23.3,2.5-.6,8.6-1.1,13.5-1.1,15.5,0,27.2,5.5,39,18.2,5.9,6.4,13.1,18.4,14.7,24.6l.6,2.2h99.3l-.6-3.8c-3.3-20.3-8.7-37.7-16.6-53.5-14.6-29.3-39-53.6-67.3-67.2-25.1-12-56.9-17.5-84.6-14.8Z"/><path fill="currentColor" d="M2391,919.5v154.5h200v-84h-105v-32h92v-76h-92v-33h103v-84h-198v154.5Z"/><path fill="currentColor" d="M1231.5,767.7c-5.5,14.1-113.5,303.7-113.5,304.4s21.4.9,52,.9h51.9l3.1-10.3c1.8-5.6,4.6-14.9,6.4-20.7l3.2-10.5,45.5-.3,45.4-.2,6,21,5.9,21h53.8c29.6,0,53.8-.3,53.8-.6s-105.1-279.8-114.7-305.2c-.4-.9-11.2-1.2-49.3-1.2s-48.8.1-49.5,1.7ZM1293.8,917.8c7.2,21.8,13.2,40.1,13.2,40.5s-12.2.7-27.1.7h-27l.6-2.3c3.2-10.6,26.1-78.7,26.5-78.7s6.5,17.9,13.8,39.8Z"/><path fill="currentColor" d="M1851.5,767.7c-5.5,14.1-113.5,303.7-113.5,304.4s21.4.9,52,.9h51.9l3.1-10.3c1.8-5.6,4.6-14.9,6.4-20.7l3.2-10.5,45.5-.3,45.4-.2,6,21,5.9,21h53.8c29.6,0,53.8-.3,53.8-.6s-105.1-279.8-114.7-305.2c-.4-.9-11.2-1.2-49.3-1.2s-48.8.1-49.5,1.7ZM1913.8,917.8c7.2,21.8,13.2,40.1,13.2,40.5s-12.2.7-27.1.7h-27l.6-2.3c3.2-10.6,26.1-78.7,26.5-78.7s6.5,17.9,13.8,39.8Z"/><path fill="currentColor" d="M2083,919.5v153.6l74.8-.4c73.2-.3,74.9-.4,84.7-2.6,30.2-6.8,52.2-18.1,72-37.2,21.3-20.6,35.4-46.8,41.6-77.6,2.7-13.7,3.7-43.7,1.9-59.2-7.7-66.1-50.9-113.6-115.7-127.3-10.6-2.2-12.3-2.3-85-2.6l-74.3-.3v153.6ZM2217.5,860.5c27.3,6.9,42.6,28.2,42.6,59s-10.5,44.7-29.5,54c-11.1,5.4-16.9,6.5-34.8,6.5h-15.8v-121h15.8c10.8,0,17.7.5,21.7,1.5Z"/><path fill="currentColor" d="M2654.6,769.7c-1.2,7.2-41.6,301-41.6,302.2s12.9,1.1,48.4,1.1h48.4l.6-3.8c.3-2,3.7-34.3,7.6-71.7,3.8-37.4,7.3-69.8,7.7-71.9.8-3.8,2.2-.8,33.4,71.5l32.6,75.4,17.4.2,17.4.3,32.5-75.5c17.9-41.5,32.7-75.5,33-75.5s4,32.5,8.3,72.2c4.3,39.8,8.1,73.8,8.4,75.5l.5,3.3h47.9c47.7,0,47.9,0,47.9-2.1s-9.2-69.5-20.5-151.9-20.5-150.6-20.5-151.4c0-1.4-5.1-1.6-48.2-1.6h-48.3l-29,72.5c-15.9,39.8-29.3,72.1-29.7,71.7s-13.5-32.9-29.1-72.2l-28.5-71.5-48-.3-48-.2-.6,3.7Z"/><path fill="currentColor" d="M2990.6,771.2c1.5,2.9,24.2,46.6,50.5,97l47.9,91.8v113h97v-113.6l50.5-96.4c27.8-53,50.5-96.5,50.5-96.7s-25.1-.3-55.7-.3h-55.8l-18.9,46.6c-10.4,25.6-19.3,45.9-19.6,45.2-.4-.7-8.9-21.7-19-46.6l-18.4-45.2h-111.6l2.6,5.2Z"/></g></g></g>
+            </svg>
+        );
+
+        // --- ENHANCED DATA ---
+        const RAW_BATCH_DATA = [
+            { name: 'B5', total: 34, pass: 34, fail: 0, revenueImpact: 1.2 },
+            { name: 'B6', total: 44, pass: 42, fail: 2, revenueImpact: 1.5 },
+            { name: 'B7', total: 30, pass: 26, fail: 4, revenueImpact: 1.1 },
+            { name: 'B8', total: 31, pass: 28, fail: 3, revenueImpact: 1.3 },
+            { name: 'B9', total: 55, pass: 45, fail: 10, revenueImpact: 1.8 },
+            { name: 'B10', total: 14, pass: 12, fail: 2, revenueImpact: 0.6 },
+            { name: 'B11', total: 33, pass: 28, fail: 5, revenueImpact: 1.4 },
+            { name: 'B12', total: 47, pass: 36, fail: 11, revenueImpact: 1.7 },
+            { name: 'B13', total: 40, pass: 36, fail: 4, revenueImpact: 1.9 },
+            { name: 'B14', total: 38, pass: 33, fail: 5, revenueImpact: 1.8 },
+            { name: 'B15', total: 10, pass: 9, fail: 1, revenueImpact: 0.5 },
+            { name: 'B16', total: 15, pass: 11, fail: 4, revenueImpact: 0.7 },
+            { name: 'B17', total: 14, pass: 10, fail: 4, revenueImpact: 0.6 },
+            { name: 'B18', total: 13, pass: 11, fail: 2, revenueImpact: 0.8 },
+            { name: 'B19', total: 21, pass: 17, fail: 4, revenueImpact: 1.1 },
+            { name: 'B20', total: 19, pass: 18, fail: 1, revenueImpact: 1.2 },
+            { name: 'B21', total: 32, pass: 23, fail: 9, revenueImpact: 1.5 },
+            { name: 'B22', total: 36, pass: 36, fail: 0, revenueImpact: 2.1 },
+            { name: 'B23', total: 16, pass: 14, fail: 2, revenueImpact: 0.9 },
+            { name: 'B24', total: 25, pass: 22, fail: 3, revenueImpact: 1.4 },
+        ];
+
+        const BATCH_DATA = RAW_BATCH_DATA.map(batch => ({
+            ...batch,
+            passRate: parseFloat(((batch.pass / batch.total) * 100).toFixed(1)),
+            marketAvg: 65 // Simulated market average pass rate for comparison
+        }));
+
+        const RADAR_DATA = [
+            { subject: 'Market Knowledge', A: 65, B: 95, fullMark: 100 },
+            { subject: 'Negotiation Psych', A: 40, B: 90, fullMark: 100 },
+            { subject: 'Mapping', A: 30, B: 85, fullMark: 100 },
+            { subject: 'Digital Agility', A: 50, B: 88, fullMark: 100 },
+            { subject: 'Leadership', A: 70, B: 98, fullMark: 100 },
+            { subject: 'Client Retention', A: 55, B: 81, fullMark: 100 },
+        ];
+
+        const TOTAL_TRAINED = RAW_BATCH_DATA.reduce((acc, cur) => acc + cur.total, 0);
+        const TOTAL_PASSED = RAW_BATCH_DATA.reduce((acc, cur) => acc + cur.pass, 0);
+        const AVG_PASS_RATE = ((TOTAL_PASSED / TOTAL_TRAINED) * 100).toFixed(1);
+
+        // --- SHARED COMPONENTS ---
+
+        const GlassCard = ({ children, className = '' }) => (
+            <div className={`bg-charcoal-800/50 backdrop-blur-md border border-white/10 shadow-xl rounded-2xl overflow-hidden ${className}`}>
+                {children}
+            </div>
+        );
+
+        const NavItem = ({ id, activeTab, setActiveTab, icon: Icon, label }) => (
+            <button
+                onClick={() => setActiveTab(id)}
+                className={`relative px-6 py-3 flex items-center space-x-2 text-sm font-medium transition-all duration-300 rounded-full
+                ${activeTab === id
+                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+                    : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+            >
+                <Icon className={`w-4 h-4`} />
+                <span>{label}</span>
+            </button>
+        );
+
+        // --- VIEWS ---
+
+        const ViewVision = () => (
+            <div className="h-full flex flex-col justify-center relative px-12">
+                <div className="absolute top-20 right-20 w-96 h-96 bg-red-500/5 rounded-full blur-[120px] animate-pulse-slow"></div>
+                <div className="absolute bottom-20 left-20 w-96 h-96 bg-white/5 rounded-full blur-[120px] animate-pulse-slow delay-700"></div>
+
+                <div className="relative z-10 max-w-4xl">
+                    <div className="flex items-center space-x-2 text-red-400 mb-6 tracking-widest uppercase text-xs font-semibold">
+                        <Sparkles className="w-4 h-4" />
+                        <span>Board of Directors // Strategic Briefing Q4</span>
+                    </div>
+
+                    <h1 className="text-7xl font-bold text-white leading-tight mb-8">
+                        Architecting <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-red-400 to-white">
+                        Cognitive Dominance
+                        </span>
+                        <br /> in Real Estate.
+                    </h1>
+
+                    <p className="text-2xl text-slate-300 leading-relaxed font-light border-l-2 border-red-500 pl-6 mb-12">
+                        We are no longer just a training wing. We are the R&D facility for the company's most valuable asset: <strong className="text-white font-medium">Human Intelligence.</strong>
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-4">
+                        {[
+                        { label: 'Market Adaptation Speed', val: '48hrs', sub: 'Curriculum update cycle' },
+                        { label: 'Graduate Success Rate', val: '3.4x', sub: 'vs. Industry avg agent' },
+                        { label: 'Retention Rate', val: '79%', sub: 'Post-Elite tier certification' }
+                        ].map((stat, i) => (
+                        <GlassCard key={i} className="p-6 hover:bg-white/5 transition-colors group">
+                            <h3 className="text-slate-400 text-sm font-medium uppercase mb-2">{stat.label}</h3>
+                            <div className="text-4xl font-light text-white mb-1 group-hover:text-red-400 transition-colors">{stat.val}</div>
+                            <div className="text-xs text-red-500 flex items-center">
+                                <TrendingUp className="w-3 h-3 mr-1" /> {stat.sub}
+                            </div>
+                        </GlassCard>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const ViewLifecycle = () => (
+            <div className="h-full px-12 py-8 flex flex-col">
+                <div className="mb-8 text-center">
+                    <h2 className="text-4xl font-bold text-white mb-2 flex items-center justify-center">
+                        <Eye className="w-8 h-8 mr-3 text-red-500" /> The 6-Month 'OTJ' Protocol
+                    </h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto">Post-graduation active monitoring and seniority ascension pipeline.</p>
+                </div>
+
+                <div className="flex-1 flex items-center justify-center relative">
+                     {/* Timeline Spine */}
+                    <div className="absolute left-1/2 top-10 bottom-10 w-px bg-gradient-to-b from-red-500/30 via-red-500 to-red-500/30 -translate-x-1/2"></div>
+
+                    <div className="w-full max-w-5xl h-full flex flex-col justify-between relative z-10 py-4">
+                        
+                        {/* Start Point */}
+                        <div className="flex justify-center items-center mb-8">
+                             <GlassCard className="px-6 py-3 bg-red-900/30 flex items-center border-red-500/30">
+                                <Award className="w-5 h-5 text-red-400 mr-2" />
+                                <span className="text-white font-bold">Month 0: Graduation</span>
+                             </GlassCard>
+                        </div>
+
+                        {/* The Monitoring Zone */}
+                        <div className="flex-1 flex items-center">
+                            <div className="w-1/2 pr-12 flex justify-end">
+                                <GlassCard className="p-6 w-80 border-red-500/10 bg-red-950/10 relative group hover:border-red-500/30 transition-all">
+                                    <div className="absolute right-[-52px] top-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full border-4 border-charcoal-900 z-20"></div>
+                                    <div className="absolute right-[-48px] top-1/2 h-[2px] w-12 bg-red-900/30"></div>
+                                    <h3 className="text-red-400 font-bold flex items-center mb-2">
+                                        <AlertTriangle className="w-4 h-4 mr-2" /> Deviation Detection
+                                    </h3>
+                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                        If KPIs drop below 15% of cohort avg for 2 consecutive weeks, automatic <span className="text-red-300">Remedial Intervention</span> is triggered.
+                                    </p>
+                                </GlassCard>
+                            </div>
+                            <div className="w-1/2 pl-12">
+                                <GlassCard className="p-6 w-80 border-white/10 bg-white/5 relative group hover:border-white/20 transition-all">
+                                    <div className="absolute left-[-52px] top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-4 border-charcoal-900 z-20"></div>
+                                    <div className="absolute left-[-48px] top-1/2 h-[2px] w-12 bg-white/20"></div>
+                                    <h3 className="text-white font-bold flex items-center mb-2">
+                                        <TrendingUp className="w-4 h-4 mr-2" /> High-Performance Track
+                                    </h3>
+                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                        Agents exceeding revenue targets by 20%+ are flagged for early <span className="text-white">Leadership Potential</span>.
+                                    </p>
+                                </GlassCard>
+                            </div>
+                        </div>
+
+                        {/* Decision Gate */}
+                         <div className="flex justify-center items-center mt-8">
+                             <GlassCard className="px-8 py-6 bg-charcoal-800 flex flex-col items-center border-red-500/20 text-center relative">
+                                <div className="absolute top-[-20px] left-1/2 -translate-x-1/2 w-px h-5 bg-red-500/50"></div>
+                                <Eye className="w-8 h-8 text-white mb-2" />
+                                <span className="text-white font-bold text-lg">Month 6: The Decision Gate</span>
+                                <div className="flex space-x-4 mt-4">
+                                    <span className="px-3 py-1 bg-red-950/30 border border-red-900/30 rounded-full text-xs text-red-400">Termination</span>
+                                    <span className="px-3 py-1 bg-charcoal-900 border border-white/10 rounded-full text-xs text-slate-300">Standard Corps</span>
+                                    <span className="px-3 py-1 bg-white/10 border border-white/20 rounded-full text-xs text-white font-bold flex items-center">
+                                        <CheckCircle className="w-3 h-3 mr-1" /> Senior Course Unlock
+                                    </span>
+                                </div>
+                             </GlassCard>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        );
+
+        const ViewData = () => (
+            <div className="h-full px-12 py-8 overflow-y-auto">
+                <div className="flex justify-between items-end mb-8">
+                    <div>
+                        <h2 className="text-4xl font-bold text-white mb-2">Performance Analytics</h2>
+                        <p className="text-slate-400">Quantitative and Qualitative output analysis (Batches 5-24).</p>
+                    </div>
+                    <div className="flex space-x-8">
+                        <div className="text-right">
+                        <div className="text-3xl font-light text-white">{876}</div>
+                        <div className="text-xs text-slate-400 uppercase tracking-wider">Agents Processed</div>
+                        </div>
+                        <div className="text-right">
+                        <div className="text-3xl font-light text-red-500">{AVG_PASS_RATE}%</div>
+                        <div className="text-xs text-slate-400 uppercase tracking-wider">Elite Qualification Rate</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-12 gap-6 h-[500px]">
+                    <GlassCard className="col-span-8 p-6">
+                        <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Throughput & Quality Control</h3>
+                        <div className="flex items-center space-x-4 text-xs">
+                            <span className="flex items-center"><div className="w-2 h-2 bg-red-600 rounded-full mr-2"></div> Passed</span>
+                            <span className="flex items-center"><div className="w-2 h-2 bg-charcoal-900 rounded-full mr-2"></div> Failed</span>
+                            <span className="flex items-center"><div className="w-2 h-2 bg-white rounded-full mr-2"></div> Academy Trend</span>
+                        </div>
+                        </div>
+                        <ResponsiveContainer width="100%" height="85%">
+                        <ComposedChart data={BATCH_DATA} margin={{ top: 20, right: 20, bottom: 0, left: 0 }}>
+                            <defs>
+                            <linearGradient id="colorPass" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#cb1419" stopOpacity={0.9}/>
+                                <stop offset="95%" stopColor="#cb1419" stopOpacity={0.4}/>
+                            </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#2d2d2d" vertical={false} />
+                            <XAxis dataKey="name" stroke="#4b5563" tick={{fill: '#9ca3af', fontSize: 10}} />
+                            <YAxis yAxisId="left" stroke="#4b5563" tick={{fill: '#9ca3af', fontSize: 10}} />
+                            <YAxis yAxisId="right" orientation="right" stroke="#ef4444" domain={[0, 100]} tick={{fill: '#ef4444', fontSize: 10}} />
+                            <Tooltip
+                            contentStyle={{ backgroundColor: '#1a1a1a', borderColor: '#2d2d2d', color: '#fff', borderRadius: '8px' }}
+                            itemStyle={{ color: '#fff' }}
+                            cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                            />
+                            <Bar yAxisId="left" dataKey="pass" stackId="a" fill="url(#colorPass)" radius={[0, 0, 4, 4]} />
+                            <Bar yAxisId="left" dataKey="fail" stackId="a" fill="#2d2d2d" radius={[4, 4, 0, 0]} />
+                            <Line yAxisId="right" type="monotone" dataKey="passRate" stroke="#ffffff" strokeWidth={3} dot={{r:4, fill:'#cb1419', strokeWidth:2}} />
+                            <Line yAxisId="right" type="monotone" dataKey="marketAvg" stroke="#6b7280" strokeDasharray="5 5" dot={false} />
+                        </ComposedChart>
+                        </ResponsiveContainer>
+                    </GlassCard>
+
+                    <GlassCard className="col-span-4 p-6 bg-gradient-to-b from-red-950/10 to-charcoal-900/50">
+                        <div className="mb-4">
+                        <h3 className="text-sm font-semibold text-red-300 uppercase tracking-wider flex items-center">
+                            <Microscope className="w-4 h-4 mr-2" /> Psychometric Proficiency
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">Academy Grads (Red) vs. Market Standard (Grey)</p>
+                        </div>
+                        <ResponsiveContainer width="100%" height="80%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={RADAR_DATA}>
+                            <PolarGrid stroke="#374151" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                            <Radar name="Market Standard" dataKey="A" stroke="#6b7280" fill="#6b7280" fillOpacity={0.1} />
+                            <Radar name="Red Academy" dataKey="B" stroke="#ef4444" fill="#ef4444" fillOpacity={0.4} />
+                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', borderColor: '#2d2d2d', borderRadius: '8px' }} />
+                        </RadarChart>
+                        </ResponsiveContainer>
+                        <div className="text-center text-xs text-red-400 font-medium mt-2">
+                        Notable Advantage: Negotiation Psychology (+50%)
+                        </div>
+                    </GlassCard>
+                </div>
+            </div>
+        );
+
+        const ViewFuture = () => (
+            <div className="h-full px-12 py-8 overflow-y-auto flex flex-col">
+                <div className="mb-12 text-center">
+                    <h2 className="text-5xl font-bold text-white mb-4">The Quantum Leap Strategy</h2>
+                    <p className="text-slate-400 text-xl max-w-3xl mx-auto">Moving beyond linear improvements to exponential capabilities.</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-8 flex-1 items-center">
+                    <div className="group relative">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500 to-red-700 rounded-2xl blur opacity-20 group-hover:opacity-60 transition duration-1000"></div>
+                        <GlassCard className="relative p-8 h-96 flex flex-col justify-between hover:-translate-y-2 transition-transform duration-300">
+                        <div>
+                            <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6">
+                            <Brain className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-3">Project Pharos AI</h3>
+                            <p className="text-slate-400 leading-relaxed">
+                            A proprietary Large Language Model trained exclusively on <span className="text-white">our</span> best historical sales calls.
+                            </p>
+                        </div>
+                        <div className="space-y-3">
+                            <p className="text-sm text-red-400 font-semibold uppercase tracking-wider">The Breakthrough:</p>
+                            <p className="text-sm text-slate-300">Trainees roleplay against an AI that perfectly mimics a "hesitant New Cairo investor" before they ever touch a real lead.</p>
+                        </div>
+                        </GlassCard>
+                    </div>
+
+                    <div className="group relative scale-105 z-10">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-white/20 to-slate-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                        <GlassCard className="relative p-8 h-[26rem] flex flex-col justify-between bg-charcoal-900/80 border-white/20 hover:-translate-y-2 transition-transform duration-300">
+                        <div>
+                            <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-6">
+                            <LineChartIcon className="w-8 h-8 text-white" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-3">Predictive Attrition Modeling</h3>
+                            <p className="text-slate-400 leading-relaxed">
+                            Using training performance data to predict not just *who* will fail, but *when* they will burnout 6 months post-graduation.
+                            </p>
+                        </div>
+                        <div className="space-y-3">
+                            <p className="text-sm text-white font-semibold uppercase tracking-wider">The Breakthrough:</p>
+                            <p className="text-sm text-slate-300">Pre-emptive intervention protocols that save us hiring costs by retaining top talent before they even know they are struggling.</p>
+                        </div>
+                        </GlassCard>
+                    </div>
+
+                    <div className="group relative">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500 to-red-700 rounded-2xl blur opacity-20 group-hover:opacity-60 transition duration-1000"></div>
+                        <GlassCard className="relative p-8 h-96 flex flex-col justify-between hover:-translate-y-2 transition-transform duration-300">
+                        <div>
+                            <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6">
+                            <Award className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-3">Titanium Tier Accreditation</h3>
+                            <p className="text-slate-400 leading-relaxed">
+                            An internal "Certificate" for the top 5% of graduates. Focused on international real estate law and advanced finance.
+                            </p>
+                        </div>
+                        <div className="space-y-3">
+                            <p className="text-sm text-red-400 font-semibold uppercase tracking-wider">The Breakthrough:</p>
+                            <p className="text-sm text-slate-300">Creating a fiercely loyal "officer class" within the sales force that cannot be poached by competitors.</p>
+                        </div>
+                        </GlassCard>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const ViewAsks = () => (
+            <div className="h-full flex items-center px-24">
+                <div className="w-full grid grid-cols-2 gap-16 items-center">
+                    <div>
+                        <h2 className="text-6xl font-bold text-white mb-8 leading-tight">
+                        Invest in <br/>
+                        <span className="text-red-500">Unfair Advantages.</span>
+                        </h2>
+                        <p className="text-xl text-slate-300 leading-relaxed mb-12">
+                        To dominate 2026, we need more than just better slides. We need infrastructure that our competitors cannot replicate.
+                        </p>
+                        <button className="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-red-600 font-pj rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-charcoal-900 hover:bg-red-500">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-red-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-1000"></div>
+                        <span className="relative flex items-center text-lg">
+                            Keep The Market Beating <ArrowUpRight className="ml-2 w-5 h-5" />
+                        </span>
+                        </button>
+                    </div>
+
+                    <div className="space-y-6">
+                        <GlassCard className="p-8 flex items-center justify-between hover:border-red-500/30 transition-colors group cursor-pointer">
+                        <div>
+                            <h3 className="text-xl font-bold text-white mb-1 group-hover:text-red-400 transition-colors">Project Pharos AI Core</h3>
+                            <p className="text-slate-400 text-sm">Development & Integration</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-2xl font-light text-white"> Under Estimation </div>
+                            <div className="text-xs text-red-500">Est. ROI: 6 Months</div>
+                        </div>
+                        </GlassCard>
+
+                        <GlassCard className="p-8 flex items-center justify-between hover:border-white/30 transition-colors group cursor-pointer">
+                        <div>
+                            <h3 className="text-xl font-bold text-white mb-1 group-hover:text-red-400 transition-colors">Pharos Assistant Module</h3>
+                            <p className="text-slate-400 text-sm">Post-session trainee interaction & Q&A bot</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-2xl font-light text-white"> Under Estimation </div>
+                            <div className="text-xs text-white">Engagement: +85%</div>
+                        </div>
+                        </GlassCard>
+
+                        <GlassCard className="p-8 flex items-center justify-between hover:border-red-500/30 transition-colors group cursor-pointer">
+                        <div>
+                            <h3 className="text-xl font-bold text-white mb-1 group-hover:text-red-400 transition-colors">VR Hardware Suite</h3>
+                            <p className="text-slate-400 text-sm">20x Oculus Enterprise Units</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-2xl font-light text-white">EGP 600k</div>
+                            <div className="text-xs text-red-500">Travel Savings: EGP 20k/mo</div>
+                        </div>
+                        </GlassCard>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('vision');
+            const [mounted, setMounted] = useState(false);
+
+            useEffect(() => {
+                setMounted(true);
+            }, []);
+
+            return (
+                <div className={`min-h-screen bg-charcoal-900 text-slate-200 font-sans overflow-hidden transition-opacity duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-charcoal-800 via-charcoal-900 to-black -z-20"></div>
+                    <div className="fixed top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent"></div>
+
+                    <header className="fixed top-6 inset-x-0 flex justify-center z-50">
+                        <GlassCard className="px-4 py-2 flex items-center space-x-1 rounded-full bg-charcoal-900/80">
+                        <div className="pr-6 flex items-center font-bold text-white tracking-wider border-r border-white/10 mr-2">
+                            <Logo className="h-8 w-auto text-white" />
+                        </div>
+                        <NavItem id="vision" activeTab={activeTab} setActiveTab={setActiveTab} icon={Target} label="Vision" />
+                        <NavItem id="lifecycle" activeTab={activeTab} setActiveTab={setActiveTab} icon={Eye} label="Talent Lifecycle" />
+                        <NavItem id="data" activeTab={activeTab} setActiveTab={setActiveTab} icon={PieChartIcon} label="Performance Protocol" />
+                        <NavItem id="future" activeTab={activeTab} setActiveTab={setActiveTab} icon={Zap} label="Quantum Leap" />
+                        <NavItem id="asks" activeTab={activeTab} setActiveTab={setActiveTab} icon={Lock} label="Strategic Investment" />
+                        </GlassCard>
+                    </header>
+
+                    <main className="h-screen pt-28 pb-8">
+                        <div className={`h-full transition-all duration-500 transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                            {activeTab === 'vision' && <ViewVision />}
+                            {activeTab === 'lifecycle' && <ViewLifecycle />}
+                            {activeTab === 'data' && <ViewData />}
+                            {activeTab === 'future' && <ViewFuture />}
+                            {activeTab === 'asks' && <ViewAsks />}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
